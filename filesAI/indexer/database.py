@@ -1,6 +1,8 @@
 from pathlib import Path
 import sqlite3
 
+# Nota: el fichero __init__.py marca la carpeta como "paquete"
+
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"       # .resolve() para saber donde esta database.py                                                                                                                                       
 DATA_DIR.mkdir(exist_ok=True)                                                                                                                                                                                                     
 DB_PATH = DATA_DIR / "fileai.db"                                        # construye la ruta donde estara la base de datos
@@ -24,7 +26,8 @@ def init_db():
                 size INTEGER,                                                                                                                                                                                    
                 modified_at TEXT,                                                                                                                                                                                
                 mime_type TEXT,                                                                                                                                                                                  
-                hash TEXT,                                                                                                                                                                                       
+                hash TEXT,
+                content TEXT,                                                                                                                                                                             
                 scanned_at TEXT DEFAULT CURRENT_TIMESTAMP                                                                                                                                                        
             );                                                                                                                                                                                                   
         """)                                                                                                                                                                                                     
@@ -64,3 +67,15 @@ def count_files():
     conn.close()
 
     return result[0]
+
+def update_sql_content(path: str, content : str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE files SET content = ? WHERE path = ?",
+        (content, path)
+    )
+
+    conn.commit()
+    conn.close()

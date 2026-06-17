@@ -3,6 +3,8 @@ from datetime import datetime
 import hashlib
 import mimetypes
 
+# Nota: el fichero __init__.py marca la carpeta como "paquete"
+
 # Paso 1: Obtener la ruta de donde vamos a operar (de momento en Downloads/)
 
 def get_download_path():
