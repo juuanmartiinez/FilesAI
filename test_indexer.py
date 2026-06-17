@@ -1,0 +1,11 @@
+from filesAI.scanner.walker import get_download_path, scan_directory                                                                                                                                         
+from filesAI.indexer.database import init_db, insert_files, count_files                                                                                                                                      
+                                                                                                                                                                                                                  
+init_db()                                                                                                                                                                                                    
+                                                                                                                                                                                                                  
+downloads = get_download_path()                                                                                                                                                                              
+files = scan_directory(downloads)                                                                                                                                                                            
+                                                                                                                                                                                                                  
+insert_files(files)                                                                                                                                                                                          
+                                                                                                                                                                                                                  
+print(f"Archivos guardados: {count_files()}")
