@@ -1,0 +1,27 @@
+```gitignore                                                                                                                                                                                                   
+    # Entorno virtual                                                                                                                                                                                            
+    .venv/                                                                                                                                                                                                       
+    venv/                                                                                                                                                                                                        
+    env/                                                                                                                                                                                                         
+                                                                                                                                                                                                                  
+    # Base de datos local                                                                                                                                                                                        
+    data/                                                                                                                                                                                                        
+                                                                                                                                                                                                                  
+    # Caché de Python                                                                                                                                                                                            
+    __pycache__/                                                                                                                                                                                                 
+    *.py[cod]                                                                                                                                                                                                    
+    *$py.class                                                                                                                                                                                                   
+                                                                                                                                                                                                                  
+    # Base de datos SQLite                                                                                                                                                                                       
+    *.db                                                                                                                                                                                                         
+    *.sqlite                                                                                                                                                                                                     
+    *.sqlite3                                                                                                                                                                                                    
+                                                                                                                                                                                                                  
+    # Archivos del sistema                                                                                                                                                                                       
+    .DS_Store                                                                                                                                                                                                    
+    Thumbs.db                                                                                                                                                                                                    
+                                                                                                                                                                                                                  
+    # Configuración de editores                                                                                                                                                                                  
+    .vscode/                                                                                                                                                                                                     
+    .idea/                                                                                                                                                                                                       
+```
