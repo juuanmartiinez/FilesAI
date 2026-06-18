@@ -1,5 +1,6 @@
 ```gitignore                                                                                                                                                                                                   
-    # Entorno virtual                                                                                                                                                                                            
+    # Entorno virtual
+    .venv                                                                                                                                                                                          
     .venv/                                                                                                                                                                                                       
     venv/                                                                                                                                                                                                        
     env/                                                                                                                                                                                                         
