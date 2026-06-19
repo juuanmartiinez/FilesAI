@@ -12,7 +12,10 @@
     # Caché de Python                                                                                                                                                                                            
     __pycache__/                                                                                                                                                                                                 
     *.py[cod]                                                                                                                                                                                                    
-    *$py.class                                                                                                                                                                                                   
+    *$py.class         
+
+    # Test de termianl 
+    test_*.py                                                                                                                                                                                         
                                                                                                                                                                                                                   
     # Base de datos SQLite                                                                                                                                                                                       
     *.db                                                                                                                                                                                                         

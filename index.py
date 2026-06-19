@@ -1,0 +1,6 @@
+from filesAI.indexer.embeddings import index_files                                                                                                                                                           
+                                                                                                                                                                                                                  
+if __name__ == "__main__":                                                                                                                                                                                   
+    print("Reindexando archivos...")                                                                                                                                                                         
+    index_files()                                                                                                                                                                                            
+    print("Indexación completada.")

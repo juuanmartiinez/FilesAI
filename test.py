@@ -1,0 +1,10 @@
+from filesAI.indexer.search import search_hybrid                                                                                                                                                             
+                                                                                                                                                                                                                  
+results = search_hybrid("examenes AEDII", top_k=5)                                                                                                                                                           
+                                                                                                                                                                                                                  
+for i, result in enumerate(results, 1):                                                                                                                                                                      
+    print(f"{i}. {result['name']}")                                                                                                                                                                          
+    print(f"   Total: {result['total_score']:.3f}")                                                                                                                                                          
+    print(f"   BM25: {result['bm25_score']:.3f}")                                                                                                                                                            
+    print(f"   Semántico: {result['semantic_score']:.3f}")                                                                                                                                                   
+    print()

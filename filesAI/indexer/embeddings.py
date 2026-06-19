@@ -1,8 +1,8 @@
 import chromadb
 import ollama
-import sqlite3
 
 from filesAI.indexer.database import get_connection
+from filesAI.indexer.utils import get_document_preview
 
 # Creamos conexiones con la ChromaBD, obtenemos la coleccion que guarda el vector y calculamos el vector
 
@@ -33,12 +33,14 @@ def index_files():
 
     conn.close()
 
-    for file_id, file_path, file_name, file_content in files:                  
-        embedding = generate_embedding(file_content)
+    for file_id, file_path, file_name, file_content in files:
+
+        preview = get_document_preview(file_content)
+        embedding = generate_embedding(preview)
 
         collection.add(
             ids=[str(file_id)],
-            documents=[file_content],
+            documents=[preview],
             metadatas=[{"path" : file_path, "name" : file_name}],
             embeddings = [embedding]
         )
@@ -62,68 +64,3 @@ def search_similar_file(query : str, max_distance: float):
             filtered.append((metadata, distance))
 
     return filtered
-
-def search_hybrid(query : str, max_distance : float, top_k : int):
-    keywords = [word.lower() for word in query.split() if len(word) > 2]                                                                                                                                     
-    scores = {}
-    
-    semantic_results = search_similar_file(query, max_distance)
-
-    for metadata, distance in semantic_results:
-        path = metadata["path"]
-        name = metadata["name"]
-
-        semantic_score = 1 / (1 + distance)
-
-        scores[path] = {
-            "name": name,
-            "path": path,
-            "semantic_score" : semantic_score,
-            "keyword_score" : 0.0,
-            "distance" : distance,
-        }
-    
-    # Busqueda por palabras clave
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT path, name, content FROM files WHERE content != ''")
-    files = cursor.fetchall()
-
-    conn.close()
-
-    for path, name, content in files:
-        path_lower = path.lower()                                                                                                                                                                            
-        name_lower = name.lower()                                                                                                                                                                            
-        content_lower = content.lower() if content else ""
-
-        keyword_score = 0.0
-
-        for keyword in keywords:
-            if keyword in name_lower:
-                keyword_score += 2.0
-            elif keyword in content_lower:
-                keyword_score += 1.0 
-
-        if keyword_score > 0:
-            if path not in scores:                                                                                                                                                                           
-                    scores[path] = {                                                                                                                                                                             
-                        "name": name,                                                                                                                                                                            
-                        "path": path,                                                                                                                                                                            
-                        "semantic_score": 0.0,                                                                                                                                                                   
-                        "keyword_score": 0.0,                                                                                                                                                                    
-                        "distance": None                                                                                                                                                                         
-                    }                                                                                                                                                                                            
-            scores[path]["keyword_score"] += keyword_score
-
-    # Combinamos resultados 
-
-    results = []
-
-    for item in scores.values():
-        total_score = item["semantic_score"] + item["keyword_score"]
-        item["total_score"] = total_score
-        results.append(item)
-    
-    return results[:top_k]
