@@ -1,10 +1,8 @@
-from filesAI.indexer.search import search_hybrid                                                                                                                                                             
-                                                                                                                                                                                                                  
-results = search_hybrid("examenes AEDII", top_k=5)                                                                                                                                                           
-                                                                                                                                                                                                                  
-for i, result in enumerate(results, 1):                                                                                                                                                                      
-    print(f"{i}. {result['name']}")                                                                                                                                                                          
-    print(f"   Total: {result['total_score']:.3f}")                                                                                                                                                          
-    print(f"   BM25: {result['bm25_score']:.3f}")                                                                                                                                                            
-    print(f"   Semántico: {result['semantic_score']:.3f}")                                                                                                                                                   
+from filesAI.indexer.search import search  # Función principal de búsqueda
+
+results = search("", top_k=10)  # Lanzamos una búsqueda de prueba
+
+for i, result in enumerate(results, 1):
+    print(f"{i}. {result['name']}")
+    print(f"   Score: {result['total_score']:.3f}")
     print()

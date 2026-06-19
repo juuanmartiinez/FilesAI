@@ -1,0 +1,8 @@
+typer
+pymupdf
+python-docx
+openpyxl
+requests
+ollama
+watchdog
+rank-bm25

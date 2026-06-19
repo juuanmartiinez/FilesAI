@@ -1,2 +1,0 @@
-def get_document_preview(content: str, max_chars: int = 2000) -> str:                                                                                                                                        
-    return content[:max_chars].strip()
