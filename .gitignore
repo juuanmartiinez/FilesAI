@@ -1,32 +1,25 @@
-```gitignore                                                                                                                                                                                                   
-    # Entorno virtual
-    .venv                                                                                                                                                                                          
-    .venv/                                                                                                                                                                                                       
-    venv/                                                                                                                                                                                                        
-    env/                                                                                                                                                                                                         
-                                                                                                                                                                                                                  
-    # Base de datos local                                                                                                                                                                                        
-    data/
-    data/chroma/                                                                                                                                                                                            
-                                                                                                                                                                                                                  
-    # Caché de Python                                                                                                                                                                                            
-    __pycache__/                                                                                                                                                                                                 
-    *.py[cod]                                                                                                                                                                                                    
-    *$py.class         
+# Entorno virtual
+.venv/
+venv/
+env/
 
-    # Test de termianl 
-    test_*.py                                                                                                                                                                                         
-                                                                                                                                                                                                                  
-    # Base de datos SQLite                                                                                                                                                                                       
-    *.db                                                                                                                                                                                                         
-    *.sqlite                                                                                                                                                                                                     
-    *.sqlite3                                                                                                                                                                                                    
-                                                                                                                                                                                                                  
-    # Archivos del sistema                                                                                                                                                                                       
-    .DS_Store                                                                                                                                                                                                    
-    Thumbs.db                                                                                                                                                                                                    
-                                                                                                                                                                                                                  
-    # Configuración de editores                                                                                                                                                                                  
-    .vscode/                                                                                                                                                                                                     
-    .idea/                                                                                                                                                                                                       
-```
+# Base de datos local
+data/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Configuración de editores
+.vscode/
+.idea/
