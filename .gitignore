@@ -23,3 +23,8 @@ Thumbs.db
 # Configuración de editores
 .vscode/
 .idea/
+
+# Scripts y archivos locales de prueba
+index.py
+test.py
+index.html
