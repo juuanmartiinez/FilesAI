@@ -1,22 +1,35 @@
-from filesAI.scanner.walker import get_download_path, scan_directory  # Escaneo de archivos
-from filesAI.indexer.database import init_db, insert_files, update_sql_content  # Base de datos
+from filesAI.scanner.walker import scan_all  # Escaneo de archivos
+from filesAI.indexer.database import (
+    init_db,
+    insert_files,
+    update_sql_content,
+    get_all_paths,
+    delete_files_not_in,
+)  # Base de datos
 from filesAI.extractor.extractor import extract_content  # Extracción de texto
 
 
 if __name__ == "__main__":
-    
+
     print("Reindexando archivos...")
 
     init_db()  # Creamos/recreamos la tabla files
 
-    downloads = get_download_path()  # Obtenemos la ruta de Downloads
-    files = scan_directory(downloads)  # Escaneamos todos los archivos
+    files = scan_all()  # Escaneamos todos los directorios configurados
+    scanned_paths = {file["path"] for file in files}
 
-    insert_files(files)  # Guardamos metadatos en SQLite
+    insert_files(files)  # Guardamos/actualizamos metadatos en SQLite
 
+    # Eliminamos del índice archivos que ya no existen en disco
+    indexed_paths = get_all_paths()
+    deleted = delete_files_not_in(scanned_paths)
+    if deleted:
+        print(f"Eliminados {deleted} archivos que ya no existen.")
+
+    # Extraemos texto de los archivos escaneados
     for file in files:
-        content = extract_content(file["path"])  # Extraemos texto según la extensión
+        content = extract_content(file["path"])
         if content:
-            update_sql_content(file["path"], content)  # Guardamos el contenido en SQLite
+            update_sql_content(file["path"], content)
 
-    print("Indexación completada.")
+    print(f"Indexación completada: {len(files)} archivos indexados.")

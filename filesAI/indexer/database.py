@@ -41,7 +41,7 @@ def insert_files(files):
 
     for file in files:
         cursor.execute("""                                                                                                                                                                                   
-                INSERT OR IGNORE INTO files                                                                                                                                                                      
+                INSERT OR REPLACE INTO files                                                                                                                                                                      
                 (path, name, extension, size, modified_at, mime_type, hash)                                                                                                                                      
                 VALUES (?, ?, ?, ?, ?, ?, ?)                                                                                                                                                                     
             """, (                                                                                                                                                                                               
@@ -79,3 +79,39 @@ def update_sql_content(path: str, content : str):
 
     conn.commit()
     conn.close()
+
+
+def get_all_paths() -> set[str]:
+    """
+    Devuelve el conjunto de rutas actualmente indexadas.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT path FROM files")
+    paths = {row[0] for row in cursor.fetchall()}
+
+    conn.close()
+    return paths
+
+
+def delete_files_not_in(paths: set[str]) -> int:
+    """
+    Elimina del índice las rutas que ya no están en el conjunto dado.
+    Devuelve el número de filas eliminadas.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT path FROM files")
+    to_delete = [row[0] for row in cursor.fetchall() if row[0] not in paths]
+
+    deleted = 0
+    if to_delete:
+        for path in to_delete:
+            cursor.execute("DELETE FROM files WHERE path = ?", (path,))
+            deleted += cursor.rowcount
+
+    conn.commit()
+    conn.close()
+    return deleted
