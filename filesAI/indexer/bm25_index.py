@@ -21,13 +21,13 @@ def build_bm25_index():
     cursor = conn.cursor()
 
     # Seleccionamos solo archivos con contenido extraído
-    cursor.execute("SELECT path, name, content FROM files WHERE content != ''")
-    files = cursor.fetchall()  # Lista de tuplas (path, name, content)
+    cursor.execute("SELECT path, name, extension, modified_at, content FROM files WHERE content != ''")
+    files = cursor.fetchall()  # Lista de tuplas (path, name, extension, modified_at, content)
 
     conn.close()  # Cerramos la conexión lo antes posible
 
     tokenized_corpus = []  # Aquí guardaremos cada documento tokenizado
-    for path, name, content in files:
+    for path, name, extension, modified_at, content in files:
         text = f"{name} {content}"  # Combinamos nombre y contenido
         tokenized_corpus.append(tokenize(text))  # Tokenizamos y añadimos al corpus
 
@@ -45,10 +45,12 @@ def search_bm25(query: str, top_k: int = 20):
     scores = bm25.get_scores(tokenized_query)  # Obtenemos puntuación para cada documento
 
     results = []
-    for i, (path, name, content) in enumerate(files):
+    for i, (path, name, extension, modified_at, content) in enumerate(files):
         results.append({
             "path": path,
             "name": name,
+            "extension": extension,
+            "modified_at": modified_at,
             "bm25_score": float(scores[i])  # Convertimos a float para evitar tipos raros
         })
 

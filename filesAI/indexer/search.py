@@ -3,6 +3,11 @@ import math  # Para calcular logaritmos en IDF
 
 from filesAI.indexer.database import get_connection  # Acceso a SQLite
 from filesAI.indexer.bm25_index import search_bm25  # Fallback con BM25
+from filesAI.indexer.scoring import (  # Metadatos objetivos para ordenar
+    infer_requested_format,
+    compute_format_score,
+    compute_recency_score,
+)
 
 
 def extract_keywords(query: str) -> list[str]:
@@ -24,7 +29,7 @@ def compute_idf_weights(keywords: list[str], files_data: list) -> dict[str, floa
     total_files = len(files_data) or 1  # Evitamos división por cero
     doc_counts = {kw: 0 for kw in keywords}
 
-    for path, name, content in files_data:
+    for _path, name, _extension, _modified_at, content in files_data:
         text = f"{name} {content}".lower()
         for kw in keywords:
             if kw in text:
@@ -50,7 +55,7 @@ def search_strict(query: str, top_k: int = 5, preview_size: int = 4000):
 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT path, name, content FROM files WHERE content != ''")
+    cursor.execute("SELECT path, name, extension, modified_at, content FROM files WHERE content != ''")
     files = cursor.fetchall()
     conn.close()
 
@@ -62,9 +67,12 @@ def search_strict(query: str, top_k: int = 5, preview_size: int = 4000):
     # Normalizamos la query original para buscar frases exactas
     query_normalized = query.lower()
 
+    # Detectamos si la query pide un formato concreto (pdf, word, excel...)
+    requested_format = infer_requested_format(query)
+
     results = []
 
-    for path, name, content in files:
+    for path, name, extension, modified_at, content in files:
         preview = content[:preview_size].lower()  # Preview del inicio del documento
         name_lower = name.lower()
 
@@ -101,16 +109,24 @@ def search_strict(query: str, top_k: int = 5, preview_size: int = 4000):
         if query_normalized in preview:
             phrase_score = 5
 
+        # Metadatos objetivos para ordenar: formato pedido y recencia
+        format_score = compute_format_score(extension, requested_format)
+        recency_score = compute_recency_score(modified_at)
+
         total_score = (
             frequency_score +
             proximity_score * 10 +
             name_score +
-            phrase_score
+            phrase_score +
+            format_score * 2.0 +
+            recency_score * 1.0
         )
 
         results.append({
             "path": path,
             "name": name,
+            "extension": extension,
+            "modified_at": modified_at,
             "total_score": total_score
         })
 
@@ -121,16 +137,28 @@ def search_strict(query: str, top_k: int = 5, preview_size: int = 4000):
 def search_bm25_fallback(query: str, top_k: int = 5):
     """
     Fallback usando BM25 cuando la búsqueda estricta no encuentra nada.
+    Aplica también recencia y formato como metadatos de ordenación.
     """
     results = search_bm25(query, top_k=top_k)
-    return [
-        {
+    requested_format = infer_requested_format(query)
+
+    ranked = []
+    for r in results:
+        format_score = compute_format_score(r.get("extension"), requested_format)
+        recency_score = compute_recency_score(r.get("modified_at", ""))
+
+        total_score = r["bm25_score"] + format_score * 2.0 + recency_score * 1.0
+
+        ranked.append({
             "path": r["path"],
             "name": r["name"],
-            "total_score": r["bm25_score"]
-        }
-        for r in results
-    ]
+            "extension": r.get("extension"),
+            "modified_at": r.get("modified_at"),
+            "total_score": total_score
+        })
+
+    ranked.sort(key=lambda x: x["total_score"], reverse=True)
+    return ranked[:top_k]
 
 
 def search(query: str, top_k: int = 5):
