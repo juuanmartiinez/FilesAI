@@ -1,99 +1,71 @@
-import re
-import math
-
-from filesAI.indexer.database import get_connection
-
-
-def extract_keywords(query: str) -> list[str]:
-    """
-    Extrae palabras clave de la query.
-    Ignora puntuación y palabras muy cortas.
-    """
-    query = query.lower()
-    query = re.sub(r"[^\w\s]", " ", query)
-    words = query.split()
-    return [word for word in words if len(word) > 2]
-
-
-def compute_idf_weights(keywords: list[str], files_data: list) -> dict[str, float]:
-    """
-    Calcula pesos IDF simples para cada palabra clave.
-    Palabras que aparecen en pocos archivos valen más.
-    """
-    total_files = len(files_data) or 1
-    doc_counts = {kw: 0 for kw in keywords}
-
-    for _path, name, content in files_data:
-        text = f"{name} {content}".lower()
-        for kw in keywords:
-            if re.search(rf"\b{re.escape(kw)}\b", text):
-                doc_counts[kw] += 1
-
-    weights = {}
-    for kw in keywords:
-        count = max(doc_counts[kw], 1)
-        weights[kw] = math.log(total_files / count) + 1
-
-    return weights
+from filesAI.indexer.text_processing import normalize
+from filesAI.indexer.inverted_index import (
+    get_candidate_doc_ids,
+    get_doc_frequencies,
+    get_doc_info,
+    get_token_doc_counts,
+    get_avg_doc_lengths,
+    get_doc_count,
+    get_doc_contents,
+)
+from filesAI.indexer.ranker import rank_documents, compute_proximity_score, PROXIMITY_WEIGHT
 
 
 def search(query: str, top_k: int = 5):
     """
-    Búsqueda estricta por palabras clave.
-    Solo devuelve archivos que contienen al menos el 70% de las keywords.
+    Buscador basado en BM25 + índice invertido + stemming.
+    Devuelve los top_k documentos más relevantes para la query.
     """
-    keywords = extract_keywords(query)
+    tokens = normalize(query)
 
-    if not keywords:
+    if not tokens:
         return []
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT path, name, content FROM files WHERE content != ''")
-    files = cursor.fetchall()
-    conn.close()
+    doc_ids = get_candidate_doc_ids(tokens)
+    if not doc_ids:
+        return []
 
-    min_matches = max(1, int(len(keywords) * 0.7))
-    idf_weights = compute_idf_weights(keywords, files)
+    doc_freqs = get_doc_frequencies(doc_ids, tokens)
+    token_doc_counts = get_token_doc_counts(tokens)
+    avg_lengths = get_avg_doc_lengths()
+    N = get_doc_count()
 
-    query_normalized = query.lower()
-    results = []
+    scores = rank_documents(tokens, doc_freqs, token_doc_counts, avg_lengths, N)
 
-    for path, name, content in files:
-        text = f"{name} {content}".lower()
-        name_lower = name.lower()
+    # Umbral: el documento debe contener al menos el 50% de los tokens de la query.
+    min_tokens = max(1, int(len(tokens) * 0.5))
+    filtered_scores = {}
+    for doc_id, score in scores.items():
+        matched = sum(1 for token in tokens if doc_freqs.get(doc_id, {}).get(token, {}).get("content", 0) > 0 or doc_freqs.get(doc_id, {}).get(token, {}).get("name", 0) > 0)
+        if matched >= min_tokens:
+            filtered_scores[doc_id] = score
 
-        # Palabras clave que aparecen como palabra completa en el documento
-        matched_keywords = [
-            kw for kw in keywords
-            if re.search(rf"\b{re.escape(kw)}\b", text)
-        ]
+    # Añadimos proximidad de palabras a los mejores candidatos.
+    sorted_candidates = sorted(filtered_scores.items(), key=lambda x: x[1], reverse=True)
+    top_candidates = sorted_candidates[:100]
+    candidate_ids = {doc_id for doc_id, _ in top_candidates}
+    contents = get_doc_contents(candidate_ids)
 
-        if len(matched_keywords) < min_matches:
-            continue
+    final_scores = {}
+    for doc_id, base_score in top_candidates:
+        content = contents.get(doc_id, "")
+        proximity = compute_proximity_score(content, tokens)
+        final_scores[doc_id] = base_score + proximity * PROXIMITY_WEIGHT
 
-        # Frecuencia ponderada por IDF en todo el contenido
-        frequency_score = sum(
-            len(re.findall(rf"\b{re.escape(kw)}\b", text)) * idf_weights[kw]
-            for kw in matched_keywords
-        )
+    for doc_id, base_score in sorted_candidates[100:]:
+        final_scores[doc_id] = base_score
 
-        # Boost si las palabras clave aparecen en el nombre
-        name_score = 0
-        for kw in keywords:
-            if re.search(rf"\b{re.escape(kw)}\b", name_lower):
-                name_score += 0.5 * idf_weights[kw]
+    doc_info = get_doc_info(set(final_scores.keys()))
 
-        # Bonus si aparece la frase exacta
-        phrase_score = 5 if query_normalized in text else 0
-
-        total_score = frequency_score + name_score + phrase_score
-
-        results.append({
-            "path": path,
-            "name": name,
-            "total_score": total_score
-        })
+    results = [
+        {
+            "path": doc_info[doc_id]["path"],
+            "name": doc_info[doc_id]["name"],
+            "total_score": score,
+        }
+        for doc_id, score in final_scores.items()
+        if doc_id in doc_info
+    ]
 
     results.sort(key=lambda x: x["total_score"], reverse=True)
     return results[:top_k]

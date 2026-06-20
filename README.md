@@ -1,8 +1,8 @@
 # FileAI
 
-Buscador local de archivos por contenido. Indexa los archivos de la carpeta personal del usuario y permite buscar dentro de ellos usando palabras clave.
+Buscador local de archivos por contenido. Indexa los archivos de la carpeta personal del usuario y permite buscar dentro de ellos usando lenguaje natural.
 
-> Estado actual: proyecto en desarrollo. La búsqueda es funcional pero aún se está refinando.
+> Estado actual: proyecto en desarrollo. El motor de búsqueda ya funciona con técnicas clásicas de recuperación de información.
 
 ## Qué hace ahora
 
@@ -11,9 +11,14 @@ Buscador local de archivos por contenido. Indexa los archivos de la carpeta pers
 2. **Indexación**: guarda los metadatos y el texto extraído en una base de datos SQLite local (`data/fileai.db`).
    - Soporta extracción de texto de `.pdf`, `.txt` y `.docx`.
    - Mantiene el índice sincronizado: actualiza archivos modificados y elimina los que ya no existen.
-3. **Búsqueda estricta**: encuentra archivos que contienen al menos el 70% de las palabras clave de la query.
-   - Usa coincidencia de palabra completa.
-   - Ordena por frecuencia ponderada (IDF), coincidencias en el nombre y frases exactas.
+3. **Motor de búsqueda**: usa un buscador clásico por relevancia inspirado en los buscadores web.
+   - **Índice invertido**: localiza rápidamente los documentos que contienen las palabras de la query.
+   - **Stemming**: entiende variantes de la misma palabra (`examen`, `exámenes`, `examenes`).
+   - **Stopwords**: ignora palabras vacías en español e inglés.
+   - **BM25**: puntúa documentos según frecuencia e importancia de las palabras.
+   - **Ponderación por campo**: el nombre del archivo pesa más que el contenido.
+   - **Proximidad de palabras**: favorece documentos donde las palabras de la query aparecen cerca unas de otras.
+   - **Umbral mínimo**: un documento debe contener al menos el 50% de las palabras de la query para aparecer.
 
 ## Cómo usarlo
 
@@ -45,7 +50,7 @@ python test.py
 Ejemplo de query:
 
 ```python
-results = search("examenes de algoritmos y estructuras de datos II", top_k=10)
+results = search("examenes de algoritmos y estructuras de datos", top_k=10)
 ```
 
 ## Estructura del proyecto
@@ -54,32 +59,37 @@ results = search("examenes de algoritmos y estructuras de datos II", top_k=10)
 FilesAI/
 ├── filesAI/
 │   ├── indexer/
-│   │   ├── database.py   # Gestión de SQLite
-│   │   └── search.py     # Algoritmo de búsqueda estricta
+│   │   ├── database.py          # Gestión de SQLite
+│   │   ├── inverted_index.py    # Índice invertido para búsquedas rápidas
+│   │   ├── ranker.py            # Puntuación BM25 y proximidad
+│   │   ├── search.py            # API principal de búsqueda
+│   │   └── text_processing.py   # Tokenización, stopwords y stemming
 │   ├── scanner/
-│   │   └── walker.py     # Escaneo de archivos
+│   │   └── walker.py            # Escaneo de archivos
 │   └── extractor/
-│       └── ...           # Extracción de texto por formato
+│       └── ...                  # Extracción de texto por formato
 ├── data/
-│   └── fileai.db         # Base de datos local (ignorada por Git)
-├── index.py              # Script para reindexar
-├── test.py               # Script de prueba de búsqueda
+│   └── fileai.db                # Base de datos local (ignorada por Git)
+├── index.py                     # Script para reindexar
+├── test.py                      # Script de prueba de búsqueda
 └── requirements.txt
 ```
 
 ## Decisiones técnicas
 
-- **Sin LLM en runtime**: no se usan modelos de lenguaje para las búsquedas por consumo y temperatura del equipo.
-- **Sin embeddings**: la búsqueda es puramente por palabras clave.
+- **Sin LLM en runtime**: no se usan modelos de lenguaje grandes para las búsquedas por consumo y temperatura del equipo.
+- **Sin embeddings**: la búsqueda se basa en técnicas clásicas de recuperación de información.
 - **Base de datos local**: SQLite en `data/fileai.db`, no se sube a Git.
 
 ## Limitaciones conocidas
 
-- La búsqueda aún genera falsos positivos con palabras comunes (p. ej., `datos` puede aparecer en documentos de bases de datos).
+- La búsqueda puede generar falsos positivos con palabras ambiguas muy comunes (p. ej., `datos` puede aparecer tanto en documentos de bases de datos como de estructuras de datos).
 - Solo se indexan archivos cuyo texto se puede extraer (`pdf`, `txt`, `docx`).
 - El índice completo se reconstruye al ejecutar `index.py`.
+- No se corrigen faltas de ortografía ni se usan sinónimos de forma explícita (aún).
 
 ## Próximos pasos
 
-- Refinar el algoritmo de búsqueda estricta en `search.py` para reducir ruido y mejorar el orden de resultados.
-- Evaluar si se añaden mejoras como sinónimos, ponderación por campo o filtros por tipo de archivo.
+- Recoger feedback real de usuarios para ajustar pesos y umbral.
+- Evaluar sinónimos generales y corrección ortográfica ligera.
+- Considerar un modelo de embeddings ligero si el motor clásico llega a su techo.
